@@ -1,5 +1,5 @@
 # Treinamento em Flask
-### Contrução de uma OpenAPI 
+### Construção de uma OpenAPI 
 
 # Rodar o flask 
 ```flask run```
