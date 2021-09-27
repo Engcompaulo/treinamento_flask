@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from flask import Flask, request, jsonify
 from flask_pydantic_spec import FlaskPydanticSpec, Response, Request
 from pydantic import BaseModel
@@ -15,27 +15,27 @@ class Pessoa(BaseModel):
     idade: int
 
 class Pessoas(BaseModel):
-    pessoas: list[Pessoa]
+    pessoas: List[Pessoa]
     count: int
 
 
-@server.get('/cadastros')
+@server.get('/pessoas')
 @spec.validate(resp=Response(HTTP_200=Pessoas))
-def pegar_cadastros():
-    """Retorna todas os cadastros da base de dados. """
+def buscar_pessoas():
+    """Retorna todas as Pessoas da base de dados."""
     return jsonify(
         Pessoas(
             pessoas=database.all(),
             count=len(database.all())
-        )
+        ).dict()
     )
-    #return jsonify(database.all())
+#    return jsonify(database.all())
 
 
-@server.post('/cadastros')
+@server.post('/pessoas')
 @spec.validate(body=Request(Pessoa), resp=Response(HTTP_200=Pessoa))
-def inserir_cadastro():
-    """Insere um novo cadastro no banco de dados."""
+def inserir_pessoa():
+    """Insere uma nova pessoa no banco de dados."""
     body = request.context.body.dict()
     database.insert(body)
     return body
