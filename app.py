@@ -4,12 +4,19 @@ from flask import Flask, request, jsonify
 from flask_pydantic_spec import FlaskPydanticSpec, Response, Request
 from pydantic import BaseModel, Field
 from tinydb import TinyDB, Query
+from tinydb.storages import MemoryStorage
 
 server = Flask(__name__)
 spec = FlaskPydanticSpec('flask', title='Treinamento do Paulo')
 spec.register(server)
-database = TinyDB('database.json')
+#database = TinyDB('database.json') Com essa linha, o banco não é sobreescrito
+database = TinyDB(storage=MemoryStorage) # Toda hora que a aplicação reinicia, o banco zera
 c = count()
+
+class QueryPessoa(BaseModel):
+    id: Optional[int] 
+    nome:  Optional[str]
+    idade:  Optional[int]
 
 
 class Pessoa(BaseModel):
@@ -23,13 +30,21 @@ class Pessoas(BaseModel):
 
 
 @server.get('/pessoas')
-@spec.validate(resp=Response(HTTP_200=Pessoas))
+@spec.validate(
+    query=QueryPessoa,
+    resp=Response(HTTP_200=Pessoas)
+)
 def buscar_pessoas():
     """Retorna todas as Pessoas da base de dados."""
+    query = request.context.query.dict(exclude_none=True)
+    todas_as_pessoas = database.search(
+        Query().fragment(query)
+    )
     return jsonify(
         Pessoas(
-            pessoas=database.all(),
-            count=len(database.all())
+            #pessoas=database.all(),
+            pessoas=todas_as_pessoas,
+            count=len(todas_as_pessoas)
         ).dict()
     )
 
@@ -38,7 +53,10 @@ def buscar_pessoas():
 @spec.validate(resp=Response(HTTP_200=Pessoa))
 def buscar_pessoa(id):
     """Retorna uma Pessoas da base de dados pelo ID."""
-    pessoa = database.search(Query().id == id)[0]
+    try:
+        pessoa = database.search(Query().id == id)[0]
+    except IndexError:
+        return {'message': 'Pessoa não encontrada!'}, 404
     return jsonify(pessoa)
 
 
